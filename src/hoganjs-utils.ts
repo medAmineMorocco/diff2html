@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference path="../typings/profoundlogic__hogan.d.ts" />
 import * as Hogan from '@profoundlogic/hogan';
 
 import { defaultTemplates } from './diff2html-templates';

@@ -154,6 +154,7 @@
   "files": [
     "bundles",
     "lib",
-    "lib-esm"
+    "lib-esm",
+    "typings"
   ]
 }
