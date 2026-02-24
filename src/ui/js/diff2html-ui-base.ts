@@ -52,11 +52,159 @@ export class Diff2HtmlUI {
 
   draw(): void {
     this.targetElement.innerHTML = this.diffHtml;
-    if (this.config.synchronisedScroll) this.synchronisedScroll();
-    if (this.config.highlight) this.highlightCode();
-    if (this.config.fileListToggle) this.fileListToggle(this.config.fileListStartVisible);
-    if (this.config.fileContentToggle) this.fileContentToggle();
-    if (this.config.stickyFileHeaders) this.stickyFileHeaders();
+    this.initVirtualFiles();
+  }
+
+  private initVirtualFiles(): void {
+    const dataEl = this.targetElement.querySelector<HTMLScriptElement>('#d2h-virtual-data');
+
+    // fallback (old behavior)
+    if (!dataEl) {
+      if (this.config.synchronisedScroll) this.synchronisedScroll();
+      if (this.config.highlight) this.highlightCode();
+      if (this.config.fileListToggle) this.fileListToggle(this.config.fileListStartVisible);
+      if (this.config.fileContentToggle) this.fileContentToggle();
+      if (this.config.stickyFileHeaders) this.stickyFileHeaders();
+      return;
+    }
+
+    const filesHtml: string[] = JSON.parse(dataEl.textContent || '[]');
+
+    const items = Array.from(this.targetElement.querySelectorAll<HTMLElement>('.d2h-virtual-item'));
+
+    const observer = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+
+          const el = entry.target as HTMLElement;
+
+          if (el.dataset.d2hLoaded === '1') continue;
+
+          const index = Number(el.dataset.d2hIndex);
+          el.dataset.d2hLoaded = '1';
+          el.innerHTML = filesHtml[index];
+
+          const wrapper = el.querySelector<HTMLElement>('.d2h-file-wrapper');
+          if (wrapper) {
+            if (this.config.highlight) this.highlightCodeFor(wrapper);
+            if (this.config.synchronisedScroll) this.synchronisedScrollFor(wrapper);
+            if (this.config.fileContentToggle) this.fileContentToggleFor(wrapper);
+            if (this.config.stickyFileHeaders) this.stickyFileHeadersFor(wrapper);
+          }
+
+          observer.unobserve(el);
+        }
+      },
+      {
+        root: this.targetElement,
+        rootMargin: '800px',
+      },
+    );
+
+    items.forEach(i => observer.observe(i));
+
+    if (this.config.fileListToggle) {
+      this.fileListToggle(this.config.fileListStartVisible);
+    }
+  }
+
+  private highlightCodeFor(file: HTMLElement): void {
+    const hljs = this.hljs;
+    if (hljs === null) return;
+
+    const language = file.getAttribute('data-lang');
+
+    if (!(this.config.highlightLanguages instanceof Map)) {
+      this.config.highlightLanguages = new Map(Object.entries(this.config.highlightLanguages));
+    }
+
+    let hljsLanguage =
+      language && this.config.highlightLanguages.has(language)
+        ? this.config.highlightLanguages.get(language)!
+        : language
+          ? getLanguage(language)
+          : 'plaintext';
+
+    if (hljs.getLanguage(hljsLanguage) === undefined) {
+      hljsLanguage = 'plaintext';
+    }
+
+    const codeLines = file.querySelectorAll('.d2h-code-line-ctn');
+
+    codeLines.forEach(line => {
+      const text = line.textContent;
+      const lineParent = line.parentNode;
+
+      if (text === null || lineParent === null || !this.isElement(lineParent)) return;
+
+      const result = closeTags(
+        hljs.highlight(text, {
+          language: hljsLanguage,
+          ignoreIllegals: true,
+        }),
+      );
+
+      const originalStream = nodeStream(line);
+      if (originalStream.length) {
+        const resultNode = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+        resultNode.innerHTML = result.value;
+        result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
+      }
+
+      line.classList.add('hljs');
+      if (result.language) {
+        line.classList.add(result.language);
+      }
+      line.innerHTML = result.value;
+    });
+  }
+
+  private synchronisedScrollFor(wrapper: HTMLElement): void {
+    const sides = wrapper.querySelectorAll<HTMLElement>('.d2h-file-side-diff');
+    const left = sides[0];
+    const right = sides[1];
+
+    if (!left || !right) return;
+
+    const onScroll = (event: Event): void => {
+      if (event.target === left) {
+        right.scrollTop = left.scrollTop;
+        right.scrollLeft = left.scrollLeft;
+      } else {
+        left.scrollTop = right.scrollTop;
+        left.scrollLeft = right.scrollLeft;
+      }
+    };
+
+    left.addEventListener('scroll', onScroll);
+    right.addEventListener('scroll', onScroll);
+  }
+
+  private fileContentToggleFor(wrapper: HTMLElement): void {
+    wrapper.querySelectorAll<HTMLElement>('.d2h-file-collapse').forEach(btn => {
+      btn.style.display = 'flex';
+
+      const toggle = (selector: string) => {
+        const fileContents = btn.closest('.d2h-file-wrapper')?.querySelector(selector);
+        if (fileContents) {
+          btn.classList.toggle('d2h-selected');
+          fileContents.classList.toggle('d2h-d-none');
+        }
+      };
+
+      btn.addEventListener('click', e => {
+        if (btn === e.target) return;
+        toggle('.d2h-file-diff');
+        toggle('.d2h-files-diff');
+      });
+    });
+  }
+
+  private stickyFileHeadersFor(wrapper: HTMLElement): void {
+    wrapper.querySelectorAll('.d2h-file-header').forEach(header => {
+      header.classList.add('d2h-sticky-header');
+    });
   }
 
   synchronisedScroll(): void {
