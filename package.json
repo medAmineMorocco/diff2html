@@ -41,12 +41,12 @@
     "prettier": "prettier --ignore-path .gitignore '**/*.+(js|jsx|ts|tsx|json|css|html|md|mdx)'",
     "format:check": "npm run prettier --check",
     "format:fix": "npm run prettier --write",
-    "build": "npm run build:css && npm run build:templates && npm run build:commonjs && npm run build:esm && npm run build:bundles && npm run build:website",
+    "build": "npm run build:css && npm run build:templates && npm run build:commonjs && npm run build:esm && npm run build:bundles",
     "build:commonjs": "tsc -p tsconfig.json -m CommonJS --outDir lib",
     "build:esm": "tsc -p tsconfig.json -m ESNext --outDir lib-esm",
     "build:bundles": "webpack --mode production --config webpack.bundles.ts",
     "build:css": "postcss --config ./postcss.config.js --no-map -o ./bundles/css/diff2html.min.css ./src/ui/css/diff2html.css",
-    "build:templates": "ts-node ./scripts/hulk.ts --wrapper ts --variable 'defaultTemplates' ./src/templates/*.mustache > ./src/diff2html-templates.ts",
+    "build:templates": "ts-node ./scripts/hulk.ts --wrapper ts --variable defaultTemplates ./src/templates/*.mustache > ./src/diff2html-templates.ts",
     "build:website": "webpack --mode production --config webpack.website.ts",
     "gen": "npm run gen:toc",
     "gen:toc-base": "markdown-toc --maxdepth 3 --bullets='-' -i",
@@ -63,7 +63,7 @@
     "start:website": "webpack serve --mode development --config webpack.website.ts",
     "preversion": "npm run validate",
     "version": "git add -A package.json",
-    "prepare": "npm run build:templates && npm run build"
+    "prepare": "npm run build"
   },
   "main": "./lib/diff2html.js",
   "module": "./lib-esm/diff2html.js",
@@ -81,18 +81,18 @@
     ]
   },
   "dependencies": {
-    "diff": "^8.0.3",
-    "@profoundlogic/hogan": "^3.0.4"
+    "@profoundlogic/hogan": "^3.0.4",
+    "diff": "^8.0.3"
   },
   "optionalDependencies": {
     "highlight.js": "11.11.1"
   },
   "devDependencies": {
-    "prettier-2": "npm:prettier@^3",
     "@eslint/js": "^9.39.2",
     "@eslint/json": "^1.0.0",
     "@types/hogan.js": "3.0.5",
     "@types/jest": "^30.0.0",
+    "@types/minimatch": "^5.1.2",
     "@types/node": "^25.1.0",
     "@types/nopt": "3.0.32",
     "all-contributors-cli": "^6.26.1",
@@ -124,6 +124,7 @@
     "postcss-loader": "^8.2.0",
     "postcss-preset-env": "^11.1.2",
     "prettier": "^3.8.1",
+    "prettier-2": "npm:prettier@^3",
     "ts-jest": "^29.4.6",
     "ts-loader": "9.5.4",
     "ts-node": "10.9.2",
