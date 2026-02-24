@@ -62,7 +62,8 @@
     "start": "npm run start:website",
     "start:website": "webpack serve --mode development --config webpack.website.ts",
     "preversion": "npm run validate",
-    "version": "git add -A package.json"
+    "version": "git add -A package.json",
+    "prepare": "npm run build"
   },
   "main": "./lib/diff2html.js",
   "module": "./lib-esm/diff2html.js",
